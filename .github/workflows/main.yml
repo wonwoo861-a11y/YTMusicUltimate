@@ -46,7 +46,6 @@ jobs:
         run: |
           curl -L -r 0-1023 -o sample.part "${{ inputs.ipa_url }}" > /dev/null 2>&1
           file_type=$(file --mime-type -b sample.part)
-
           if [[ "$file_type" != "application/x-ios-app" && "$file_type" != "application/zip" ]]; then
             echo "::error::Validation failed: The file is not a valid IPA file. Detected type: $file_type."
             exit 1
@@ -95,11 +94,13 @@ jobs:
         id: download_youtube_music
         run: wget "${{ inputs.ipa_url }}" --no-verbose -O ${{ github.workspace }}/main/ytm.ipa
 
+      # 🔧 FIXED SECTION: disable Clang VLA error during Theos build
       - name: Build Tweak for Sideloading
         id: build_package
         run: |
           cd ${{ github.workspace }}/main
-          make clean package SIDELOADING=1
+          make clean
+          make package SIDELOADING=1 CFLAGS="-Wno-vla-cxx-extension -Wno-error"
         env:
           THEOS: ${{ github.workspace }}/theos
 
@@ -120,3 +121,5 @@ jobs:
       - name: Output Release URL
         run: |
           echo "::notice::Release available at: https://github.com/${{ github.repository }}/releases"
+
+
